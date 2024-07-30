@@ -41,3 +41,51 @@ Before doing theabove, [configure Github packages as the scope provider for open
 ```
 npm login --scope=@opentdf --registry=https://npm.pkg.github.com
 ```
+
+### Run workflow locally using Act
+
+https://github.com/nektos/act
+
+#### Prerequisites 
+
+```shell
+brew install act
+```
+
+#### Secrets
+
+- Create `secrets.env`
+- Create new personal access token https://github.com/settings/tokens/new
+- Copy token and paste in `secrets.env`
+- Configure SSO for new token https://github.com/settings/tokens
+
+`secrets.env`
+```dotenv
+GITHUB_TOKEN=<ghp_...>
+```
+
+#### Colima
+
+Need about 80 GB space
+
+```shell
+colima start --disk 80
+```
+
+#### Prepare to run
+
+Image takes time to download (Note update tag if updated by `act`)
+
+```shell
+export DOCKER_HOST=$(docker context inspect --format '{{.Endpoints.docker.Host}}')
+docker pull image=catthehacker/ubuntu:full-20.04
+```
+
+#### Run
+
+```shell
+export DOCKER_HOST=$(docker context inspect --format '{{.Endpoints.docker.Host}}')
+act --action-offline-mode --container-architecture linux/amd64 --secret-file secrets.env --bind $DOCKER_HOST:/var/run/docker.sock
+```
+
+To run individual workflow, see top of some yaml in `.github/workflows` 

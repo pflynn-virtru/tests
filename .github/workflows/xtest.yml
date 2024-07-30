@@ -1,3 +1,4 @@
+# act --action-offline-mode --container-architecture linux/amd64 --secret-file secrets.env --workflows .github/workflows/xtest.yml --job cross-client-test
 name: X-Test
 on:
   pull_request:
@@ -87,8 +88,12 @@ jobs:
           sudo cp ./keys/localhost.crt /usr/local/share/ca-certificates
           sudo update-ca-certificates
         working-directory: platform
-      - run: docker compose up -d --wait --wait-timeout 240
+      - run: |
+          env
+          docker compose up -d --wait --wait-timeout 240
         working-directory: platform
+        env:
+          DOCKER_HOST: "${{ env.DOCKER_HOST || 'unix:///var/run/docker.sock' }}"
       - run: go run ./service provision keycloak
         working-directory: platform
       - run: go run ./service provision fixtures
@@ -167,7 +172,7 @@ jobs:
           mvn --batch-mode clean install -DskipTests
         env:
           BUF_INPUT_HTTPS_USERNAME: opentdf-bot
-          BUF_INPUT_HTTPS_PASSWORD: ${{ secrets.PERSONAL_ACCESS_TOKEN_OPENTDF }}
+          BUF_INPUT_HTTPS_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
         working-directory: java-sdk
 
       - name: Move java cli to xtest
@@ -184,70 +189,3 @@ jobs:
         run: |-
           npm run test
         working-directory: otdftests/xtest
-
-
-###### TODO: move these unbound tests to v2 platform
-  # unbound-test-js:
-  #   timeout-minutes: 60
-  #   runs-on: ubuntu-latest
-  #   defaults:
-  #     run:
-  #       working-directory: xtest
-  #   permissions:
-  #     contents: read
-  #     packages: read
-  #   strategy:
-  #     matrix:
-  #       kasversion: [ python-kas, go-kas ]
-  #   steps:
-  #     - uses: actions/checkout@v3
-  #     - name: Set kas-related environment variable
-  #       shell: bash
-  #       run: echo "KAS_VERSION=${{ matrix.kasversion }}" >> $GITHUB_ENV
-  #     - name: Set up Node 18
-  #       uses: actions/setup-node@v3
-  #       with:
-  #         node-version: "18.x"
-  #         registry-url: https://npm.pkg.github.com
-  #     - name: Set up Python 3.10
-  #       uses: actions/setup-python@v4
-  #       with:
-  #         python-version: "3.10"
-  #     # todo: install and activate virtual env for python?
-  #     - name: update packages
-  #       run: |-
-  #         npm ci
-  #         npm install @opentdf/cli@${{ github.event.client_payload.version }} @opentdf/client@${{ github.event.client_payload.version }}
-  #         npm list
-  #         pip3 install -r requirements.txt
-  #       env:
-  #         NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  #     - uses: yokawasa/action-setup-kube-tools@v0.9.2
-  #       with:
-  #         setup-tools: |
-  #           kubectl
-  #           helm
-  #           tilt
-  #         # This should be in sync with the minikube-deployed kube version below
-  #         kubectl: "1.24.1"
-  #         helm: "3.9.2"
-  #         tilt: "0.31.2"
-  #     - run: |
-  #         kubectl version --client
-  #         kustomize version
-  #         tilt version
-  #     - name: start minikube
-  #       id: minikube
-  #       uses: medyagh/setup-minikube@master
-  #       with:
-  #         minikube-version: 1.26.0
-  #         # This should be in sync with the setup-tools version above
-  #         kubernetes-version: 1.24.1
-  #     - name: Run tilt
-  #       run: |-
-  #         [[ -z "${{github.event.inputs.backendVersion}}" ]] && export BACKEND_LATEST_VERSION=$(skopeo list-tags docker://ghcr.io/opentdf/charts/backend \
-  #         | python3 -c "import sys, json; sys.stdout.write([tag for tag in json.load(sys.stdin)['Tags'] if not tag.endswith('.sig')][-1])") || export BACKEND_LATEST_VERSION="${{github.event.inputs.backendVersion}}"
-  #         echo "Testing Backend [$BACKEND_LATEST_VERSION]">>$GITHUB_STEP_SUMMARY
-  #         kubectl version
-  #         tilt ci -f Tiltfile.unbound-js-sdk
-  
