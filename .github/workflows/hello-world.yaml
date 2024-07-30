@@ -1,0 +1,10 @@
+name : hello-world
+on: [push]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run Docker command
+        run: |
+          docker info
+          docker run hello-world
