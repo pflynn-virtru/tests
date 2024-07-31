@@ -6,5 +6,7 @@ jobs:
     steps:
       - name: Run Docker command
         run: |
+          ls -l /var/run/docker.sock
+          stat -c %g /var/run/docker.sock
           docker info
           docker run hello-world

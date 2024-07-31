@@ -85,7 +85,9 @@ docker pull image=catthehacker/ubuntu:full-20.04
 
 ```shell
 export DOCKER_HOST=$(docker context inspect --format '{{.Endpoints.docker.Host}}')
-act --action-offline-mode --container-architecture linux/amd64 --secret-file secrets.env --bind $DOCKER_HOST:/var/run/docker.sock
+act --action-offline-mode --container-architecture linux/amd64 --secret-file secrets.env --container-options "--group-add $(stat -c %g /var/run/docker.sock)"
+
+act --action-offline-mode --container-architecture linux/amd64 --secret-file secrets.env --privileged
 ```
 
 To run individual workflow, see top of some yaml in `.github/workflows` 
